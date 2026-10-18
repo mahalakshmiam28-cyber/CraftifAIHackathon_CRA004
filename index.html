@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ElderGuard AI | Fall Detection & Elder Care</title>
+  <style>
+    :root { font-family: Inter, system-ui, Arial, sans-serif; background: #0b1020; color: #e7edf8; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    header { border-bottom: 1px solid #26344f; background: #10192e; }
+    header > div, main { max-width: 1180px; margin: auto; padding: 22px; }
+    header > div { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    h1 { margin: 0; font-size: 26px; }
+    h2 { margin: 0 0 15px; font-size: 19px; }
+    p { line-height: 1.55; color: #b9c8df; }
+    .accent { color: #6eedd6; }
+    .grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(290px, 1fr); gap: 18px; }
+    section { background: #151f34; border: 1px solid #2c3954; border-radius: 15px; padding: 20px; margin: 18px 0; }
+    button { background: #53d9c1; color: #081a21; border: 0; border-radius: 8px; padding: 11px 15px; margin: 4px 4px 4px 0; font-weight: 700; cursor: pointer; transition: opacity .2s; }
+    button:hover { opacity: .9; }
+    button.secondary { background: #374963; color: #fff; }
+    button.danger { background: #fa657f; color: #1d0910; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .video-viewport { position: relative; width: 100%; aspect-ratio: 16/9; background: #050913; border-radius: 10px; overflow: hidden; border: 1px solid #2c3954; }
+    video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; }
+    canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+    .privacy-toolbar { margin: 12px 0; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; background: #10192c; padding: 10px 14px; border-radius: 8px; border: 1px solid #26344f; }
+    .privacy-toolbar label { font-size: 13px; color: #c1d0e5; display: flex; align-items: center; gap: 6px; cursor: pointer; margin: 0; }
+    .privacy-toolbar input[type="checkbox"] { width: auto; margin: 0; accent-color: #53d9c1; cursor: pointer; }
+    .snapshot-card { display: none; position: absolute; bottom: 12px; right: 12px; border: 2px solid #fa657f; border-radius: 8px; overflow: hidden; background: #08101e; box-shadow: 0 4px 16px rgba(0,0,0,0.6); z-index: 10; max-width: 170px; }
+    .snapshot-badge { display: block; font-size: 10px; background: #fa657f; color: #1d0910; font-weight: 700; padding: 3px 6px; text-align: center; }
+    .snapshot-img { width: 160px; height: 90px; display: block; object-fit: cover; }
+    input { border-radius: 7px; border: 1px solid #53607b; background: #0d162a; color: white; padding: 10px; width: 100%; margin: 6px 0 12px; }
+    label { font-size: 14px; color: #c1d0e5; display: block; }
+    .muted, small { color: #a5b6d0; }
+    .status { padding: 12px; border-radius: 8px; background: #192d37; color: #7ff1cf; font-weight: 700; margin-bottom: 12px; }
+    .status.alert { background: #4d2332; color: #ff9db0; animation: pulse 1.2s infinite alternate; }
+    @keyframes pulse { from { opacity: 0.85; } to { opacity: 1; } }
+    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+    .metric { background: #10192c; padding: 16px; border-radius: 12px; text-align: center; }
+    .metric b { font-size: 24px; display: block; }
+    .metric small { font-size: 12px; }
+    ol { padding-left: 23px; max-height: 320px; overflow: auto; }
+    li { padding: 11px 0; border-bottom: 1px solid #2c3954; overflow-wrap: anywhere; }
+    li button { font-size: 12px; padding: 6px 9px; }
+    code { overflow-wrap: anywhere; color: #7ff1cf; }
+    a { color: #70e7d6; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    @media (max-width: 790px) {
+      .grid { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: repeat(3, 1fr); }
+      header > div { display: block; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>🛡️ ElderGuard <span class="accent">AI</span></h1>
+      <span class="muted">Privacy-Conscious Fall Detection & Elder Care | PipeGen-Ready</span>
+    </div>
+  </header>
+  <main>
+    <div class="grid">
+      <div>
+        <section>
+          <h2>Live Fall Monitoring & AI Vision</h2>
+          <div id="status" role="status" aria-live="polite" class="status">● Monitoring idle</div>
+          <p>Local-first AI pose estimation running in your browser. Raw camera frames are <strong>never</strong> transmitted to the server.</p>
+
+          <div class="video-viewport">
+            <video id="video" autoplay muted playsinline></video>
+            <canvas id="canvas"></canvas>
+            <div id="snapshot-preview" class="snapshot-card">
+              <span class="snapshot-badge">BLURRED KEYFRAME</span>
+              <img id="snapshot-img" class="snapshot-img" alt="Privacy-blurred fall keyframe">
+            </div>
+          </div>
+
+          <div class="privacy-toolbar">
+            <label>
+              <input type="checkbox" id="faceBlur" checked> 🔒 Privacy Face Blur
+            </label>
+            <label>
+              <input type="checkbox" id="skeletonOnly"> 👤 Wireframe / Avatar Only (Hide Video)
+            </label>
+            <label>
+              <input type="checkbox" id="showSkeleton" checked> 🦴 Show Pose Skeleton
+            </label>
+          </div>
+
+          <div>
+            <button id="start">Start AI Camera</button>
+            <button id="stop" class="secondary">Stop</button>
+            <button id="simulate" class="secondary">Simulate Fall</button>
+            <button id="sos" class="danger">Emergency SOS</button>
+          </div>
+          <p class="muted" id="model">Model: not loaded</p>
+          <small>AI heuristics assist caregiving and do not replace certified medical diagnostic or emergency systems.</small>
+        </section>
+
+        <section>
+          <h2>Incident Timeline</h2>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
+            <button id="export" class="secondary">Download Client CSV</button>
+            <a href="/api/events/export" download="elderguard_incidents.csv">
+              <button type="button" class="secondary">Download Server CSV 📥</button>
+            </a>
+            <button id="refresh" class="secondary">Refresh</button>
+          </div>
+          <ol id="events"><li>No events recorded.</li></ol>
+        </section>
+      </div>
+
+      <div>
+        <section>
+          <h2>Monitoring Statistics</h2>
+          <div class="metrics">
+            <div class="metric"><b id="total">0</b><small>Events</small></div>
+            <div class="metric"><b id="falls">0</b><small>Fall signals</small></div>
+            <div class="metric"><b id="open">0</b><small>Open alerts</small></div>
+          </div>
+          <p id="quality" style="margin-top: 15px; font-weight: 500;">Pose: no person detected</p>
+          <div id="pose-metrics" class="muted" style="font-size: 12px; margin-top: 4px;">Angle: N/A | Velocity: N/A</div>
+        </section>
+
+        <section>
+          <h2>Caregiver Contact</h2>
+          <label>Name<input id="name" maxlength="80" placeholder="Caregiver"></label>
+          <label>Phone<input id="phone" maxlength="20" placeholder="e.g. +91 9876543210"></label>
+          <button id="save">Save on this device</button>
+          <div id="contact" class="muted" style="margin-top: 8px;"></div>
+          <small>Alerts appear on this dashboard and trigger browser notifications (when permitted). No automatic external calls are dispatched.</small>
+        </section>
+
+        <section>
+          <h2>PipeGen Edge Integration</h2>
+          <p>For high-throughput edge cameras, use CraftifAI PipeGen to deploy DeepStream/TensorRT pipelines. Forward events to ElderGuard using the CLI bridge:</p>
+          <p><code>python pipegen/bridge.py --file output/events.jsonl</code></p>
+          <a href="/docs" target="_blank">Swagger API documentation ↗</a>
+        </section>
+      </div>
+    </div>
+  </main>
+  <script type="module" src="/static/app.js"></script>
+</body>
+</html>
